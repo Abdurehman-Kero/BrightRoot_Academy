@@ -1,0 +1,31 @@
+/* BrightRoot Academy - Global CSS Entry Point */
+
+/* The new design system lives in App.css which is imported by App.jsx.
+   This file only provides the bare minimum base reset that needs to
+   load before React mounts. All design tokens and component styles
+   are in App.css. */
+
+/* Base reset — minimal, non-conflicting */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  /* Background set by App.css :root vars */
+  background-color: #080c12;
+  color: #f0f6ff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
