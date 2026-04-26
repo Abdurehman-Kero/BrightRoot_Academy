@@ -1,0 +1,7 @@
+/* BrightRoot Academy - CSS Entry Point */
+
+/* 1. Bare base reset */
+@import './styles/globals.css';
+
+/* Note: App.css is imported by App.jsx directly.
+   This file just handles the pre-mount base styles. */
