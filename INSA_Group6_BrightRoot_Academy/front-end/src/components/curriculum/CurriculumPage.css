@@ -1,0 +1,136 @@
+.curriculum-selector {
+  background: #0d1117;
+  min-height: 100vh;
+}
+
+/* Grade Cards */
+.grade-card {
+  background: #161b22;
+  border: 2px solid #1e2a3a;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+}
+
+.grade-card:hover {
+  transform: translateY(-4px);
+  border-color: #2ecc71;
+  box-shadow: 0 8px 25px rgba(46, 204, 113, 0.15);
+}
+
+.grade-number {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #2ecc71, #3498db);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subject Select Cards */
+.subject-select-card {
+  background: #161b22;
+  border: 2px solid #1e2a3a;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+}
+
+.subject-select-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Layout */
+.curriculum-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0d1117;
+}
+
+.curriculum-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: #161b22;
+  border-bottom: 1px solid #1e2a3a;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.topbar-progress {
+  display: flex;
+  align-items: center;
+}
+
+.curriculum-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.curriculum-sidebar-container {
+  width: 320px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.curriculum-content-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Empty state */
+.no-lesson-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: #6e7681;
+}
+
+.no-lesson-selected i {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  color: #30363d;
+}
+
+.no-lesson-selected h4 {
+  color: #8b949e;
+}
+
+/* Admin button */
+.admin-float-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .curriculum-sidebar-container {
+    width: 260px;
+  }
+}
+
+@media (max-width: 768px) {
+  .curriculum-body {
+    flex-direction: column;
+  }
+
+  .curriculum-sidebar-container {
+    width: 100%;
+    max-height: 40vh;
+  }
+
+  .curriculum-content-container {
+    flex: 1;
+  }
+}
