@@ -1,0 +1,443 @@
+/* ============================================
+   Gamification System - Premium Animated UI
+   ============================================ */
+
+.gam-page {
+  min-height: 100vh;
+  background: #0d1117;
+  color: #c9d1d9;
+  display: flex;
+  flex-direction: column;
+}
+
+.gam-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+/* ── Header ── */
+.gam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: #010409;
+  border-bottom: 1px solid #1e2a3a;
+}
+
+.gam-header h4 { margin: 0; color: #e6edf3; }
+
+.gam-back-btn {
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  color: #c9d1d9;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.gam-xp-badge {
+  background: linear-gradient(135deg, #f1c40f, #f39c12);
+  color: #000;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* ── Tabs ── */
+.gam-tabs {
+  display: flex;
+  background: #010409;
+  border-bottom: 1px solid #1e2a3a;
+}
+
+.gam-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #6e7681;
+  padding: 0.7rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  transition: all 0.15s;
+  border-bottom: 2px solid transparent;
+}
+
+.gam-tab i { font-size: 1rem; }
+.gam-tab:hover { color: #c9d1d9; }
+.gam-tab.active { color: #2ecc71; border-bottom-color: #2ecc71; }
+
+/* ── Content ── */
+.gam-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Level Up Overlay ── */
+.levelup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.levelup-card {
+  background: linear-gradient(135deg, #1a3322, #0d2818);
+  border: 2px solid #2ecc71;
+  border-radius: 20px;
+  padding: 2.5rem;
+  text-align: center;
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.levelup-emoji { font-size: 4rem; margin-bottom: 0.5rem; }
+.levelup-card h2 { color: #2ecc71; font-size: 2rem; }
+.levelup-card p { color: #c9d1d9; }
+.levelup-title { color: #f1c40f !important; font-size: 1.1rem; font-weight: 700; }
+.levelup-card button {
+  background: #2ecc71; border: none; color: white;
+  padding: 0.6rem 2rem; border-radius: 10px; cursor: pointer;
+  font-weight: 700; margin-top: 1rem;
+}
+
+/* ── Daily XP Toast ── */
+.xp-toast {
+  background: linear-gradient(135deg, #1a3322, #0d2818);
+  border: 1px solid #2ecc71;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+  color: #2ecc71;
+  font-weight: 600;
+  animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── Hero Card ── */
+.hero-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  background: linear-gradient(135deg, #161b22, #1a2332);
+  border: 1px solid #2ecc71;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.hero-avatar {
+  position: relative;
+  width: 70px; height: 70px;
+  flex-shrink: 0;
+}
+
+.avatar-level {
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 800; color: white;
+  position: relative; z-index: 1;
+}
+
+.avatar-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #2ecc71;
+  animation: ring-pulse 2s infinite;
+}
+
+@keyframes ring-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.1); }
+}
+
+.hero-info { flex: 1; }
+.hero-name { color: #e6edf3; font-size: 1.3rem; font-weight: 700; margin: 0 0 0.3rem; }
+.hero-xp-row { display: flex; justify-content: space-between; margin-bottom: 0.6rem; }
+.xp-total { color: #f1c40f; font-weight: 700; font-size: 1rem; }
+.hero-rank { color: #6e7681; font-size: 0.85rem; }
+
+.level-bar-container { width: 100%; }
+.level-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: #6e7681; margin-bottom: 0.3rem; }
+
+.level-bar-bg {
+  width: 100%; height: 12px;
+  background: #21262d;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.level-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2ecc71, #1abc9c);
+  border-radius: 6px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.level-bar-glow {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+  animation: glow-sweep 2s infinite;
+}
+
+@keyframes glow-sweep {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Stats Row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.mini-stat {
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 12px;
+  padding: 0.8rem;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.mini-stat:hover { transform: translateY(-2px); }
+.mini-stat i { font-size: 1.2rem; color: #2ecc71; display: block; margin-bottom: 0.3rem; }
+.mini-val { font-size: 1.3rem; font-weight: 700; color: #e6edf3; }
+.mini-label { font-size: 0.65rem; color: #6e7681; margin-top: 0.1rem; }
+
+/* ── Streak Banner ── */
+.streak-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #3d1f00, #2d1a00);
+  border: 1px solid #f39c12;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.streak-flames { display: flex; gap: 0.2rem; }
+.flame { font-size: 1.2rem; opacity: 0.3; transition: all 0.3s; }
+.flame.active { opacity: 1; animation: flame-flicker 1.5s infinite alternate; }
+@keyframes flame-flicker { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+.streak-text strong { display: block; color: #f39c12; }
+.streak-text span { font-size: 0.78rem; color: #c9d1d9; }
+
+/* ── Section Box ── */
+.section-box {
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.section-box h5 { color: #e6edf3; font-size: 0.9rem; margin: 0 0 0.8rem; }
+.see-all-btn { background: none; border: 1px solid #2ecc71; color: #2ecc71; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+
+/* Badge Row */
+.badge-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.badge-chip {
+  display: flex; align-items: center; gap: 0.3rem;
+  background: #0d1117;
+  border: 1px solid #1e2a3a;
+  border-radius: 20px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+}
+.badge-icon { font-size: 1rem; }
+.badge-name { color: #e6edf3; }
+
+/* XP Log */
+.xp-log { display: flex; flex-direction: column; gap: 0.4rem; }
+.xp-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #1e2a3a;
+  font-size: 0.82rem;
+}
+.xp-item:last-child { border-bottom: none; }
+.xp-item i { color: #2ecc71; }
+.xp-reason { flex: 1; color: #c9d1d9; }
+.xp-amount { color: #f1c40f; font-weight: 700; }
+
+/* ── Leaderboard ── */
+.leaderboard-view h5 { color: #e6edf3; margin-bottom: 1rem; }
+.leader-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.leader-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  transition: border-color 0.15s;
+}
+
+.leader-row.me { border-color: #2ecc71; background: rgba(46, 204, 113, 0.07); }
+.leader-rank { font-size: 1.1rem; min-width: 35px; text-align: center; }
+.leader-avatar-sm {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #21262d; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700; color: #e6edf3;
+}
+.leader-info { flex: 1; }
+.leader-name { display: block; color: #e6edf3; font-weight: 600; font-size: 0.9rem; }
+.leader-level { font-size: 0.72rem; color: #6e7681; }
+.leader-right { text-align: right; }
+.leader-xp { display: block; color: #f1c40f; font-weight: 700; font-size: 0.9rem; }
+.leader-badges { font-size: 0.72rem; color: #6e7681; }
+
+/* ── Badges ── */
+.badges-view h5 { color: #e6edf3; margin-bottom: 1rem; }
+.badge-category { margin-bottom: 1.5rem; }
+.badge-cat-title { color: #8b949e; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; }
+
+.all-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.7rem;
+}
+
+.badge-card {
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.badge-card.earned {
+  border-color: var(--badge-color);
+  background: rgba(0,0,0,0.3);
+}
+
+.badge-card.earned:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+
+.badge-card.locked { opacity: 0.45; }
+
+.badge-big-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+.badge-card-name { font-size: 0.75rem; font-weight: 600; color: #e6edf3; margin-bottom: 0.2rem; }
+.badge-card-desc { font-size: 0.62rem; color: #6e7681; line-height: 1.3; margin-bottom: 0.4rem; }
+.badge-xp-pill {
+  display: inline-block;
+  background: #21262d;
+  border-radius: 10px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+  color: #f1c40f;
+}
+.earned-check {
+  position: absolute; top: 6px; right: 8px;
+  color: var(--badge-color);
+  font-weight: 700; font-size: 0.8rem;
+}
+
+/* ── Challenges ── */
+.challenges-view h5 { color: #e6edf3; margin-bottom: 0.3rem; }
+.challenges-subtitle { color: #6e7681; font-size: 0.82rem; margin-bottom: 1rem; }
+.challenge-list { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.challenge-card {
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 12px;
+  padding: 1rem;
+  transition: border-color 0.2s;
+}
+
+.challenge-card.completed { border-color: #2ecc71; }
+
+.challenge-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.challenge-icon { font-size: 1.5rem; color: #f1c40f; flex-shrink: 0; padding-top: 0.1rem; }
+.challenge-info { flex: 1; }
+.challenge-info strong { display: block; color: #e6edf3; font-size: 0.9rem; margin-bottom: 0.2rem; }
+.challenge-info p { color: #8b949e; font-size: 0.78rem; margin: 0; }
+
+.challenge-reward { text-align: center; flex-shrink: 0; }
+.challenge-reward span { display: block; color: #f1c40f; font-size: 1.1rem; font-weight: 800; }
+.challenge-reward small { color: #6e7681; font-size: 0.65rem; }
+
+.challenge-progress-row { display: flex; align-items: center; gap: 0.6rem; }
+
+.challenge-bar-bg {
+  flex: 1; height: 8px; background: #21262d; border-radius: 4px; overflow: hidden;
+}
+
+.challenge-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3498db, #2ecc71);
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.challenge-progress-text { font-size: 0.75rem; color: #6e7681; min-width: 45px; text-align: right; }
+
+.challenge-done {
+  color: #2ecc71;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .hero-card { flex-direction: column; text-align: center; }
+  .hero-xp-row { justify-content: center; gap: 1rem; }
+  .all-badges-grid { grid-template-columns: repeat(3, 1fr); }
+}
