@@ -1,0 +1,510 @@
+/* ============================================
+   Study Planner - Premium Calendar UI
+   ============================================ */
+
+.planner-page {
+  min-height: 100vh;
+  background: #0d1117;
+  color: #c9d1d9;
+  display: flex;
+  flex-direction: column;
+}
+
+.planner-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+/* ── Header ── */
+.planner-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1.2rem;
+  background: #010409;
+  border-bottom: 1px solid #1e2a3a;
+}
+
+.planner-title h4 { color: #e6edf3; margin: 0; font-size: 1rem; }
+.planner-title span { font-size: 0.7rem; color: #6e7681; }
+.planner-title { flex: 1; }
+
+.back-btn, .gen-mini-btn {
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  color: #c9d1d9;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.gen-mini-btn { color: #9b59b6; border-color: #9b59b6; }
+
+/* Success Toast */
+.success-toast {
+  background: linear-gradient(135deg, #1a3322, #0d2818);
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── Tabs ── */
+.planner-tabs {
+  display: flex;
+  background: #010409;
+  border-bottom: 1px solid #1e2a3a;
+}
+
+.p-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #6e7681;
+  padding: 0.6rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.p-tab i { font-size: 0.95rem; }
+.p-tab:hover { color: #c9d1d9; }
+.p-tab.active { color: #2ecc71; border-bottom-color: #2ecc71; }
+
+/* ── Content ── */
+.planner-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.2rem;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Today View ── */
+.reminders-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.reminder-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1a2332;
+  border: 1px solid #3498db;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.8rem;
+  color: #58a6ff;
+}
+
+.reminder-chip span { flex: 1; }
+.reminder-chip button { background: none; border: none; color: #6e7681; cursor: pointer; padding: 0; }
+
+.today-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #161b22, #1a2332);
+  border: 1px solid #1e2a3a;
+  border-radius: 14px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.today-date-badge .today-day { color: #2ecc71; font-weight: 700; font-size: 1.1rem; }
+.today-date-badge .today-full { color: #8b949e; font-size: 0.78rem; margin-top: 0.2rem; }
+
+.today-stats { display: flex; gap: 1.5rem; }
+.today-stat { text-align: center; }
+.today-stat i { font-size: 1.2rem; color: #2ecc71; display: block; margin-bottom: 0.2rem; }
+.ts-val { font-size: 1.2rem; font-weight: 700; color: #e6edf3; }
+.ts-lbl { font-size: 0.65rem; color: #6e7681; }
+
+.today-progress-bar { margin-bottom: 1rem; }
+.progress-label { font-size: 0.72rem; color: #6e7681; margin-top: 0.3rem; display: block; }
+
+.section-title { color: #e6edf3; font-size: 0.9rem; margin-bottom: 0.8rem; margin-top: 0.5rem; }
+
+.session-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.session-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 0.8rem;
+  transition: all 0.2s;
+}
+
+.session-card.done { opacity: 0.5; }
+
+.session-time { text-align: center; min-width: 50px; }
+.session-time span { display: block; color: #e6edf3; font-weight: 700; font-size: 0.82rem; }
+.sess-dur { color: #6e7681 !important; font-size: 0.68rem !important; font-weight: 400 !important; }
+
+.session-subj-bar {
+  width: 3px;
+  height: 40px;
+  border-radius: 2px;
+  background: var(--subj-color);
+  flex-shrink: 0;
+}
+
+.session-info { flex: 1; }
+.session-info strong { display: block; color: #e6edf3; font-size: 0.85rem; }
+.session-topic { font-size: 0.75rem; color: #8b949e; display: block; }
+.ai-tip { font-size: 0.68rem; color: #58a6ff; display: block; margin-top: 0.2rem; }
+
+.session-actions { display: flex; align-items: center; gap: 0.5rem; flex-direction: column; }
+
+.done-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #6e7681;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.done-btn.completed { color: #2ecc71; }
+
+.no-sessions {
+  text-align: center;
+  padding: 2rem;
+  color: #6e7681;
+}
+
+.no-sessions i { font-size: 3rem; display: block; margin-bottom: 1rem; }
+.no-sessions p { margin-bottom: 1rem; }
+
+.gen-btn {
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  border: none;
+  color: white;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.upcoming-exams { margin-top: 1.5rem; }
+
+.exam-countdown {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.exam-countdown.urgent { border-color: #e74c3c; }
+.exam-subj { font-weight: 700; font-size: 0.9rem; }
+.exam-name { flex: 1; font-size: 0.8rem; color: #8b949e; }
+.exam-days { text-align: right; }
+.exam-days span { display: block; font-weight: 700; }
+.exam-days small { font-size: 0.68rem; color: #6e7681; }
+
+/* ── Calendar View ── */
+.calendar-view { user-select: none; }
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.cal-header h5 { color: #e6edf3; margin: 0; }
+
+.cal-nav-btn {
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  color: #c9d1d9;
+  width: 32px; height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 0.3rem;
+}
+
+.cal-weekday { text-align: center; font-size: 0.7rem; color: #6e7681; padding: 0.3rem; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-cell {
+  min-height: 62px;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 6px;
+  padding: 0.3rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  position: relative;
+}
+
+.cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+.cal-cell:not(.empty):hover { border-color: #3d4b5a; }
+.cal-cell.today { border-color: #2ecc71; background: rgba(46, 204, 113, 0.07); }
+.cal-cell.selected { border-color: #58a6ff; background: rgba(88, 166, 255, 0.07); }
+.cal-cell.has-sessions { background: #161f2d; }
+
+.cal-day { font-size: 0.78rem; color: #e6edf3; font-weight: 600; }
+.cal-cell.today .cal-day { color: #2ecc71; }
+
+.exam-dot { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; }
+
+.session-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 0.2rem;
+}
+
+.session-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+
+.more-dot { font-size: 0.55rem; color: #6e7681; }
+
+.selected-sessions {
+  margin-top: 1rem;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.selected-sessions h6 { color: #e6edf3; margin-bottom: 0.8rem; font-size: 0.85rem; }
+
+.mini-session {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #1e2a3a;
+  font-size: 0.8rem;
+}
+
+.mini-session:last-child { border-bottom: none; }
+.mini-session.done { opacity: 0.5; text-decoration: line-through; }
+
+.ms-bar { width: 3px; height: 28px; border-radius: 2px; background: var(--sc); flex-shrink: 0; }
+.ms-time { color: #8b949e; min-width: 40px; }
+.ms-subj { color: #e6edf3; font-weight: 600; min-width: 65px; }
+.ms-topic { flex: 1; color: #6e7681; font-size: 0.72rem; }
+
+.ms-done-btn {
+  background: none; border: none; color: #6e7681;
+  cursor: pointer; font-size: 1rem;
+}
+
+.no-sess-msg { color: #6e7681; font-size: 0.8rem; text-align: center; padding: 0.5rem; }
+
+/* ── Exams View ── */
+.exams-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.exams-header h5 { color: #e6edf3; margin: 0; }
+
+.add-exam-btn {
+  background: #2ecc71;
+  border: none;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.add-exam-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: #161b22;
+  border: 1px solid #2ecc71;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.p-input {
+  background: #0d1117;
+  border: 1px solid #1e2a3a;
+  color: #e6edf3;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.p-input:focus { outline: none; border-color: #2ecc71; }
+
+.form-btns { display: flex; gap: 0.5rem; }
+.save-btn { flex: 1; background: #2ecc71; border: none; color: white; padding: 0.5rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+.cancel-btn { background: #21262d; border: 1px solid #1e2a3a; color: #c9d1d9; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; }
+
+.exam-cards-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.exam-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 0.8rem;
+  gap: 0.8rem;
+}
+
+.exam-card-left { display: flex; align-items: center; gap: 0.8rem; }
+.eci-bar { width: 4px; height: 45px; border-radius: 2px; background: var(--sc); flex-shrink: 0; }
+.eci-subj { font-weight: 700; color: var(--sc); font-size: 0.9rem; }
+.eci-name { font-size: 0.78rem; color: #8b949e; }
+
+.exam-card-right { text-align: right; display: flex; align-items: center; gap: 0.8rem; }
+.eci-date { font-size: 0.78rem; color: #c9d1d9; }
+.eci-days { font-weight: 700; font-size: 0.85rem; }
+
+.del-btn { background: none; border: none; color: #6e7681; cursor: pointer; padding: 0.2rem; }
+.del-btn:hover { color: #f85149; }
+
+.no-exams { text-align: center; padding: 2.5rem; color: #6e7681; }
+.no-exams i { font-size: 3rem; display: block; margin-bottom: 1rem; }
+
+/* ── Generate View ── */
+.generate-view { text-align: center; }
+
+.gen-hero { padding: 1.5rem 0; }
+.gen-icon { font-size: 3.5rem; margin-bottom: 0.5rem; }
+.gen-hero h4 { color: #e6edf3; }
+.gen-hero p { color: #8b949e; font-size: 0.85rem; max-width: 350px; margin: 0 auto; }
+
+.gen-exams-preview {
+  text-align: left;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gen-exams-preview h6 { color: #e6edf3; margin-bottom: 0.6rem; font-size: 0.85rem; }
+.gen-exam-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+  margin: 0.2rem;
+}
+
+.gen-exam-chip span:first-child { font-weight: 700; }
+.gen-exam-chip span:last-child { color: #8b949e; }
+
+.gen-settings {
+  text-align: left;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.gen-settings h6 { color: #e6edf3; margin-bottom: 0.8rem; }
+.gen-settings label { display: block; color: #8b949e; font-size: 0.82rem; margin-bottom: 0.8rem; }
+.gen-settings input[type="range"] { display: block; width: 100%; margin: 0.3rem 0; accent-color: #9b59b6; }
+.range-val { color: #9b59b6; font-weight: 700; }
+
+.big-gen-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  border: none;
+  color: white;
+  padding: 0.9rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.big-gen-btn:hover:not(:disabled) { transform: scale(1.02); }
+.big-gen-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.gen-no-exams {
+  padding: 1.5rem;
+  color: #8b949e;
+  font-size: 0.85rem;
+}
+
+.gen-no-exams p { margin-bottom: 0.8rem; }
+
+.existing-plans h6 { color: #e6edf3; margin-bottom: 0.6rem; text-align: left; }
+
+.plan-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  text-align: left;
+  margin-bottom: 0.4rem;
+  transition: border-color 0.15s;
+}
+
+.plan-chip:hover { border-color: #9b59b6; }
+.plan-chip span { flex: 1; color: #e6edf3; }
+.plan-chip small { color: #6e7681; font-size: 0.68rem; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .today-hero { flex-direction: column; gap: 0.8rem; }
+  .cal-cell { min-height: 48px; }
+  .cal-day { font-size: 0.7rem; }
+}
