@@ -1,0 +1,163 @@
+.curriculum-sidebar {
+  background: #0d1117;
+  border-right: 1px solid #1e2a3a;
+  height: 100vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid #1e2a3a;
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+}
+
+.sidebar-header h6 {
+  color: #2ecc71;
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-loading,
+.sidebar-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #8b949e;
+  min-height: 200px;
+}
+
+.sidebar-empty i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Accordion overrides */
+.curriculum-sidebar .accordion-item {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #1e2a3a;
+}
+
+.curriculum-sidebar .accordion-header .accordion-button {
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 0.85rem;
+  padding: 0.65rem 0.8rem;
+  box-shadow: none;
+  border: none;
+}
+
+.curriculum-sidebar .accordion-header .accordion-button:not(.collapsed) {
+  background: #161b22;
+  color: #2ecc71;
+}
+
+.curriculum-sidebar .accordion-header .accordion-button::after {
+  filter: invert(1);
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.unit-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.unit-title {
+  font-weight: 600;
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.chapter-title {
+  font-size: 0.8rem;
+  color: #8b949e;
+  font-weight: 500;
+}
+
+.curriculum-sidebar .accordion-body {
+  background: #0a0e14;
+}
+
+/* Lesson list */
+.lesson-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.lesson-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem 0.55rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.lesson-item:hover {
+  background: #161b22;
+  border-left-color: #3498db;
+}
+
+.lesson-item.active {
+  background: #1a2332;
+  border-left-color: #2ecc71;
+}
+
+.lesson-item.completed .lesson-name {
+  color: #8b949e;
+}
+
+.lesson-status {
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  width: 16px;
+}
+
+.lesson-status i {
+  color: #3e4a59;
+}
+
+.lesson-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-name {
+  color: #c9d1d9;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lesson-duration {
+  font-size: 0.65rem;
+  color: #6e7681;
+  margin-top: 1px;
+}
+
+/* Scrollbar */
+.curriculum-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.curriculum-sidebar::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+.curriculum-sidebar::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 2px;
+}
