@@ -23,6 +23,7 @@ const AITutorPage = ({ onBack, token }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [convTitle, setConvTitle] = useState("New Chat");
+  const [apiError, setApiError] = useState(null); // quota / key errors
 
   // Subject/Grade for new conversations
   const [newSubject, setNewSubject] = useState("");
@@ -155,12 +156,24 @@ const AITutorPage = ({ onBack, token }) => {
         formData.append("image", selectedImage);
       }
 
-      // SSE streaming
+      // SSE streaming — abort after 20 seconds if no response
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+
       const response = await fetch(`${API}/conversations/${convId}/send/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      // Check for non-streaming HTTP error (e.g., 401, 500 before headers sent)
+      if (!response.ok && !response.body) {
+        const errText = await response.text().catch(() => "");
+        throw new Error(`Server returned ${response.status}: ${errText}`);
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -180,6 +193,9 @@ const AITutorPage = ({ onBack, token }) => {
               if (data.type === "chunk") {
                 fullText += data.content;
                 setStreamingText(fullText);
+              } else if (data.type === "quota_error") {
+                // Distinct quota/key error event — show the banner immediately
+                setApiError(data.content);
               } else if (data.type === "suggestions") {
                 setSuggestions(data.content);
               } else if (data.type === "title") {
@@ -202,12 +218,33 @@ const AITutorPage = ({ onBack, token }) => {
           }
         }
       }
+
+      // Detect quota / key errors in the streamed content
+      if (fullText.includes("quota") || fullText.includes("rate limit") || fullText.includes("API key not valid")) {
+        setApiError(fullText);
+      }
     } catch (err) {
       console.error("Send error:", err);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "⚠️ Connection error. Please try again." },
-      ]);
+      const errMsg = err.message || "";
+
+      // AbortError = our 20-second timeout fired
+      if (err.name === "AbortError") {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "⏱️ Request timed out (20s). The AI service may be overloaded — please try again." },
+        ]);
+      } else if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("rate limit")) {
+        setApiError("Gemini API free-tier quota exceeded. Get a new API key at https://aistudio.google.com/app/apikey and update GEMINI_API_KEY in Backend/.env");
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "⚠️ API quota exceeded. See the banner above for how to fix this." },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `⚠️ Error: ${errMsg || "Connection failed. Please try again."}` },
+        ]);
+      }
       setStreamingText("");
     } finally {
       setIsStreaming(false);
@@ -244,18 +281,22 @@ const AITutorPage = ({ onBack, token }) => {
   };
 
   // Render a single message with markdown + KaTeX
+  // NOTE: react-markdown v10 removed the `inline` prop from code components.
+  // We detect inline code by checking if the parent is a <pre> element.
   const renderMessage = (content) => (
     <ReactMarkdown
       remarkPlugins={[remarkMath]}
       rehypePlugins={[rehypeKatex]}
       components={{
-        code({ node, inline, className, children, ...props }) {
-          return inline ? (
-            <code className="inline-code" {...props}>{children}</code>
-          ) : (
+        code({ node, className, children, ...props }) {
+          // If className contains 'language-' it's a fenced code block (block-level)
+          const isBlock = className && className.startsWith("language-");
+          return isBlock ? (
             <pre className="code-block">
-              <code {...props}>{children}</code>
+              <code className={className} {...props}>{children}</code>
             </pre>
+          ) : (
+            <code className="inline-code" {...props}>{children}</code>
           );
         },
         blockquote({ children }) {
@@ -269,6 +310,30 @@ const AITutorPage = ({ onBack, token }) => {
 
   return (
     <div className="tutor-layout">
+
+      {/* ── API Quota / Key Error Banner ── */}
+      {apiError && (
+        <div className="api-error-banner">
+          <div className="api-error-content">
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Gemini API Quota Exceeded</strong> — The free-tier daily limit has been hit.
+            <span className="api-error-steps">
+              <b>Fix:</b> Get a new API key at{" "}
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">
+                aistudio.google.com
+              </a>
+              {" "}→ paste it into <code>Backend/.env</code> as <code>GEMINI_API_KEY=...</code> → restart the backend.
+            </span>
+          </div>
+          <button className="api-error-close" onClick={() => setApiError(null)}>
+            <i className="bi bi-x-lg"></i>
+          </button>
+        </div>
+      )}
+
+      {/* Sidebar + Main wrapped in flex row */}
+      <div className="tutor-body">
+
       {/* Sidebar */}
       <div className={`tutor-sidebar ${sidebarOpen ? "open" : "closed"}`}>
         <div className="sidebar-top">
@@ -503,6 +568,7 @@ const AITutorPage = ({ onBack, token }) => {
             BrightRoot AI Tutor uses Google Gemini. Responses may not always be accurate.
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
