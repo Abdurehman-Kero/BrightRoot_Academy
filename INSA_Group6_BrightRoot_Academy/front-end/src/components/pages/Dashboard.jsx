@@ -16,6 +16,10 @@ import {
 } from "react-bootstrap";
 import axios from "axios";
 import "./Dashboard.css";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 const Dashboard = ({ selectedSubjectGrade, onBackToSubjects }) => {
   const [activeTab, setActiveTab] = useState("upload");
@@ -188,6 +192,23 @@ const Dashboard = ({ selectedSubjectGrade, onBackToSubjects }) => {
     } finally {
       setAiLoading(false);
     }
+  };
+
+  
+  const handleViewSummary = (summary) => {
+    setCurrentSummary(summary.content);
+    setShowSummaryModal(true);
+  };
+
+  const handleViewQuiz = (quiz) => {
+    setCurrentQuiz(quiz);
+    // Handle both { questions: [...] } and [...] structures from DB vs generation
+    const questionsList = Array.isArray(quiz.questions) ? quiz.questions : (quiz.questions?.questions || []);
+    setQuizQuestions(questionsList);
+    setUserAnswers({});
+    setCurrentQuestionIndex(0);
+    setShowQuizResults(false);
+    setShowQuizModal(true);
   };
 
   const handleQuizAnswer = (answer) => {
@@ -451,70 +472,105 @@ const Dashboard = ({ selectedSubjectGrade, onBackToSubjects }) => {
         </Card.Body>
       </Card>
 
-      {/* AI Summaries */}
-      <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">
-            <i className="bi bi-lightbulb me-2"></i>
-            AI-Generated Summaries
-          </h5>
-        </Card.Header>
-        <Card.Body>
-          {summaries.length === 0 ? (
-            <p className=" ">
-              No summaries generated yet. Upload a document and generate a
-              summary!
-            </p>
-          ) : (
-            <ListGroup>
-              {summaries.map((summary) => (
-                <ListGroup.Item key={summary.id}>
-                  <h6 className="mb-1">{summary.file_title}</h6>
-                  <p className="mb-2">{summary.content.substring(0, 150)}...</p>
-                  <small className=" ">
-                    {summary.subject} • {summary.grade} •{" "}
-                    {new Date(summary.created_at).toLocaleDateString()}
-                  </small>
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-          )}
-        </Card.Body>
-      </Card>
+      
+        {/* AI Summaries */}
+        <Card className="mb-4 shadow-sm border-0 bg-white">
+          <Card.Header className="bg-white border-bottom border-light pt-4 pb-3">
+            <h5 className="mb-0 fw-bold text-primary">
+              <i className="bi bi-journal-text me-3 fs-4 align-middle"></i>
+              My Last-Minute Summaries
+            </h5>
+          </Card.Header>
+          <Card.Body className="bg-light bg-opacity-50">
+            {summaries.length === 0 ? (
+              <div className="text-center py-4 text-muted">
+                <i className="bi bi-inbox fs-2 mb-2 d-block"></i>
+                <p className="mb-0">No summaries yet. Generate one to prep for exams!</p>
+              </div>
+            ) : (
+              <Row className="g-3">
+                {summaries.map((summary) => (
+                  <Col md={6} lg={4} key={summary.id}>
+                    <Card className="h-100 border-0 shadow-sm hover-lift transition-all" style={{ cursor: 'pointer' }} onClick={() => handleViewSummary(summary)}>
+                      <Card.Body className="d-flex flex-column">
+                        <div className="d-flex align-items-start mb-2">
+                          <div className="bg-primary bg-opacity-10 p-2 rounded-3 me-3 text-primary">
+                            <i className="bi bi-lightbulb-fill fs-5"></i>
+                          </div>
+                          <div>
+                            <h6 className="mb-1 fw-bold text-truncate" title={summary.file_title}>{summary.file_title}</h6>
+                            <span className="badge bg-secondary bg-opacity-10 text-secondary border mr-2">{summary.subject}</span>
+                          </div>
+                        </div>
+                        <p className="text-muted small mb-3 flex-grow-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          Preview...
+                        </p>
+                        <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light">
+                          <small className="text-muted"><i className="bi bi-clock me-1"></i>{new Date(summary.created_at).toLocaleDateString()}</small>
+                          <Button size="sm" variant="outline-primary" className="rounded-pill px-3" onClick={(e) => { e.stopPropagation(); handleViewSummary(summary); }}>
+                            Review
+                          </Button>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )}
+          </Card.Body>
+        </Card>
 
-      {/* AI Quizzes */}
-      <Card>
-        <Card.Header>
-          <h5 className="mb-0">
-            <i className="bi bi-question-circle me-2"></i>
-            AI-Generated Quizzes
-          </h5>
-        </Card.Header>
-        <Card.Body>
-          {quizzes.length === 0 ? (
-            <p className=" ">
-              No quizzes generated yet. Upload a document and generate a quiz!
-            </p>
-          ) : (
-            <ListGroup>
-              {quizzes.map((quiz) => (
-                <ListGroup.Item key={quiz.id}>
-                  <h6 className="mb-1">{quiz.file_title}</h6>
-                  <p className="mb-2">
-                    {quiz.questions.questions?.length || 0} questions •{" "}
-                    {quiz.subject} • {quiz.grade}
-                  </p>
-                  <small className=" ">
-                    {new Date(quiz.created_at).toLocaleDateString()}
-                  </small>
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-          )}
-        </Card.Body>
-      </Card>
-    </div>
-  );
+        
+        {/* AI Quizzes */}
+        <Card className="shadow-sm border-0 bg-white mb-4">
+          <Card.Header className="bg-white border-bottom border-light pt-4 pb-3">
+            <h5 className="mb-0 fw-bold text-success">
+              <i className="bi bi-controller me-3 fs-4 align-middle"></i>
+              My Practice Quizzes
+            </h5>
+          </Card.Header>
+          <Card.Body className="bg-light bg-opacity-50">
+            {quizzes.length === 0 ? (
+               <div className="text-center py-4 text-muted">
+                <i className="bi bi-inbox fs-2 mb-2 d-block"></i>
+                <p className="mb-0">No quizzes generated yet. Test your knowledge!</p>
+              </div>
+            ) : (
+               <Row className="g-3">
+                {quizzes.map((quiz) => (
+                  <Col md={6} lg={4} key={quiz.id}>
+                    <Card className="h-100 border-0 shadow-sm hover-lift transition-all" style={{ cursor: 'pointer' }} onClick={() => handleViewQuiz(quiz)}>
+                      <Card.Body className="d-flex flex-column">
+                        <div className="d-flex align-items-start mb-3">
+                          <div className="bg-success bg-opacity-10 p-2 rounded-3 me-3 text-success">
+                            <i className="bi bi-patch-question-fill fs-5"></i>
+                          </div>
+                          <div>
+                            <h6 className="mb-1 fw-bold text-truncate" title={quiz.file_title}>{quiz.file_title}</h6>
+                            <span className="badge bg-secondary bg-opacity-10 text-secondary border">{quiz.subject}</span>
+                          </div>
+                        </div>
+                        <div className="d-flex align-items-center mb-3 text-dark small fw-bold">
+                           <i className="bi bi-list-task text-success me-2"></i>
+                           {Array.isArray(quiz.questions) ? quiz.questions.length : (quiz.questions?.questions?.length || 0)} Questions
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light">
+                          <small className="text-muted"><i className="bi bi-clock me-1"></i>{new Date(quiz.created_at).toLocaleDateString()}</small>
+                          <Button size="sm" variant="outline-success" className="rounded-pill px-3" onClick={(e) => { e.stopPropagation(); handleViewQuiz(quiz); }}>
+                            Practice
+                          </Button>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )}
+          </Card.Body>
+        </Card>
+
+      </div>
+    );
 
   return (
     <div className="dashboard">
@@ -589,11 +645,20 @@ const Dashboard = ({ selectedSubjectGrade, onBackToSubjects }) => {
         </Modal.Header>
         <Modal.Body>
           <div className="summary-content">
-            {currentSummary.split("\n").map((paragraph, index) => (
-              <p key={index} className="mb-3">
-                {paragraph}
-              </p>
-            ))}
+            <ReactMarkdown 
+               remarkPlugins={[remarkMath]} 
+               rehypePlugins={[rehypeKatex]}
+               components={{
+                 h1: ({node, ...props}) => <h3 className="mt-3 mb-2 fw-bold text-primary" {...props} />,
+                 h2: ({node, ...props}) => <h4 className="mt-3 mb-2 fw-bold text-secondary" {...props} />,
+                 h3: ({node, ...props}) => <h5 className="mt-2 mb-2 fw-bold" {...props} />,
+                 ul: ({node, ...props}) => <ul className="ps-4 mb-3" {...props} />,
+                 li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                 p: ({node, ...props}) => <p className="mb-3" {...props} />
+               }}
+            >
+              {currentSummary}
+            </ReactMarkdown>
           </div>
         </Modal.Body>
         <Modal.Footer>
@@ -686,20 +751,30 @@ const Dashboard = ({ selectedSubjectGrade, onBackToSubjects }) => {
 
                     <div className="question-review">
                       {quizQuestions.map((question, index) => (
-                        <div key={index} className="mb-3 p-3 border rounded">
-                          <h6>Question {index + 1}</h6>
-                          <p>{question.question}</p>
-                          <p className="mb-2">
-                            <strong>Your Answer:</strong>{" "}
-                            {userAnswers[index] || "Not answered"}
-                          </p>
-                          <p className="mb-2">
-                            <strong>Correct Answer:</strong>{" "}
-                            {question.correct_answer}
-                          </p>
-                          <p className="  small">{question.explanation}</p>
-                        </div>
-                      ))}
+                          <div key={index} className="text-start mb-4 p-3 bg-light rounded shadow-sm">
+                            <p className="fw-bold mb-2">
+                              {index + 1}. {question.question}
+                            </p>
+                            <p className={`mb-1 ${userAnswers[index] === question.correct_answer ? 'text-success fw-bold' : 'text-danger'}`}>
+                              Your answer: {question.options[userAnswers[index]] || 'Not answered'}
+                            </p>
+                            {userAnswers[index] !== question.correct_answer && (
+                              <p className="text-success mb-2 fw-bold">
+                                Correct answer: {question.options[question.correct_answer]}
+                              </p>
+                            )}
+                            {question.explanation && (
+                              <div className="mt-2 p-2 rounded" style={{ backgroundColor: '#e9f7fe', borderLeft: '4px solid #0dcaf0' }}>
+                                <small className="fw-bold text-info"><i className="bi bi-lightbulb-fill me-1"></i>Explanation:</small>
+                                <div className="mt-1 small text-dark">
+                                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                    {question.explanation}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                     </div>
                   </div>
                 );
