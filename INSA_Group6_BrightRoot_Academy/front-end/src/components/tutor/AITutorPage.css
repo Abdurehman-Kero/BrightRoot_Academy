@@ -4,8 +4,70 @@
 
 .tutor-layout {
   display: flex;
+  flex-direction: column;
   height: calc(100vh - var(--header-h, 60px));
   background: #0d1117;
+  overflow: hidden;
+}
+
+/* ── API Error Banner ── */
+.api-error-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.2rem;
+  background: linear-gradient(90deg, #7c2d12, #9a3412);
+  border-bottom: 1px solid #ea580c;
+  flex-shrink: 0;
+  z-index: 10;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+.api-error-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  color: #fed7aa;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.api-error-content strong { color: #ffedd5; }
+.api-error-content a      { color: #fb923c; font-weight: 600; }
+.api-error-content code   { background: rgba(0,0,0,0.3); padding: 0 4px; border-radius: 3px; color: #fbbf24; font-size: 0.78rem; }
+
+.api-error-steps {
+  display: block;
+  margin-top: 2px;
+  color: #fdba74;
+}
+
+.api-error-close {
+  background: none;
+  border: none;
+  color: #fdba74;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.api-error-close:hover { background: rgba(0,0,0,0.25); color: #fff; }
+
+/* ── Sidebar + Main must share remaining height ── */
+.tutor-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
