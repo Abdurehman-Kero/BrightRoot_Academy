@@ -8,18 +8,23 @@ const fs = require('fs');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// ── Retry helper for rate limits ──
+// ── Retry helper — fail FAST on quota/key errors, 1 quick retry on transient errors ──
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const withRetry = async (fn, maxRetries = 3) => {
+const withRetry = async (fn, maxRetries = 1) => {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       const msg = error.message || '';
-      if ((msg.includes('429') || msg.includes('quota') || msg.includes('RATE_LIMIT')) && attempt < maxRetries) {
-        const waitSec = Math.pow(2, attempt + 1) * 5; // 10s, 20s, 40s
-        console.log(`⏳ Rate limited. Retrying in ${waitSec}s (attempt ${attempt + 1}/${maxRetries})...`);
-        await sleep(waitSec * 1000);
+      const isQuotaError = msg.includes('429') || msg.includes('quota') ||
+                           msg.includes('RATE_LIMIT') || msg.includes('Too Many Requests') ||
+                           msg.includes('API_KEY_INVALID') || msg.includes('API key not valid');
+      // Quota / key errors: throw immediately — retrying won't help
+      if (isQuotaError) throw error;
+      // Transient errors: one quick retry after 1s
+      if (attempt < maxRetries) {
+        console.log(`⚡ Transient error, retrying in 1s (attempt ${attempt + 1})...`);
+        await sleep(1000);
         continue;
       }
       throw error;
@@ -200,7 +205,7 @@ const sendMessage = async (req, res) => {
 
     // Handle image if present
     if (req.file) {
-      model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const imageBuffer = fs.readFileSync(req.file.path);
       const base64Image = imageBuffer.toString('base64');
       const mimeType = req.file.mimetype || 'image/jpeg';
@@ -210,7 +215,7 @@ const sendMessage = async (req, res) => {
         { inlineData: { data: base64Image, mimeType } },
       ];
     } else {
-      model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
       // Use chat mode for conversation continuity
       if (chatHistory.length > 0) {
@@ -278,7 +283,14 @@ const sendMessage = async (req, res) => {
           res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
           return res.end();
         } catch (chatError) {
-          console.error('Chat mode error, falling back:', chatError.message);
+          const chatMsg = chatError.message || '';
+          const isQuota = chatMsg.includes('429') || chatMsg.includes('quota') ||
+                          chatMsg.includes('RATE_LIMIT') || chatMsg.includes('Too Many Requests') ||
+                          chatMsg.includes('API_KEY_INVALID') || chatMsg.includes('API key not valid');
+          // Quota/key errors: re-throw immediately so outer catch handles it properly
+          if (isQuota) throw chatError;
+          // Only fall through to non-chat mode for genuine transient errors
+          console.error('Chat mode transient error, falling back to non-chat:', chatMsg.substring(0, 100));
         }
       }
 
@@ -339,22 +351,25 @@ const sendMessage = async (req, res) => {
     console.error('Send message error:', error);
     const errMsg = error.message || '';
     let userMessage = errMsg;
+    let eventType = 'error';
     
     if (errMsg.includes('API key not valid') || errMsg.includes('API_KEY_INVALID')) {
-      userMessage = 'The Gemini API key is not valid. Please update GEMINI_API_KEY in Backend/.env file with a valid key from https://aistudio.google.com/app/apikey';
-    } else if (errMsg.includes('quota') || errMsg.includes('RATE_LIMIT')) {
-      userMessage = 'API rate limit reached. Please wait a moment and try again.';
+      userMessage = 'The Gemini API key is not valid. Please update GEMINI_API_KEY in Backend/.env with a valid key from https://aistudio.google.com/app/apikey';
+      eventType = 'quota_error';
+    } else if (errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('RATE_LIMIT') || errMsg.includes('Too Many Requests')) {
+      userMessage = 'Gemini API free-tier quota exceeded. Get a new API key at https://aistudio.google.com/app/apikey and update GEMINI_API_KEY in Backend/.env';
+      eventType = 'quota_error';
     }
     
     if (!res.headersSent) {
-      // Send as SSE so frontend can display it properly
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.write(`data: ${JSON.stringify({ type: 'chunk', content: `⚠️ ${userMessage}` })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: eventType, content: userMessage })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       return res.end();
     }
-    res.write(`data: ${JSON.stringify({ type: 'error', content: userMessage })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: eventType, content: userMessage })}\n\n`);
     res.end();
   }
 };
