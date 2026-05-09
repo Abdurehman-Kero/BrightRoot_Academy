@@ -36,7 +36,7 @@ const generateSummary = async (req, res) => {
     const fileContent = `Content from ${fileObj.title} - ${fileObj.subject} for ${fileObj.grade}`;
 
     // Generate summary using Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `
       Please provide a comprehensive summary of the following educational content:
       
@@ -106,7 +106,7 @@ const generateQuiz = async (req, res) => {
     const fileContent = `Content from ${fileObj.title} - ${fileObj.subject} for ${fileObj.grade}`;
 
     // Generate quiz using Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `
       Please create a ${num_questions}-question quiz based on the following educational content:
       
