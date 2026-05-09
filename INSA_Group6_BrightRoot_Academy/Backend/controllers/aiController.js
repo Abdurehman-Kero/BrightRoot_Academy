@@ -3,6 +3,8 @@
 // ============================================
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { pool } = require('../config/database');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 // Configure Gemini AI
@@ -32,19 +34,42 @@ const generateSummary = async (req, res) => {
 
     const fileObj = files[0];
 
-    // For now, use placeholder content (same as Django version)
-    const fileContent = `Content from ${fileObj.title} - ${fileObj.subject} for ${fileObj.grade}`;
-
     // Generate summary using Gemini
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    
+    // Check if real file exists
+    let filePart = null;
+    let fileContent = `Content from ${fileObj.title} - ${fileObj.subject} for ${fileObj.grade}`;
+    
+    if (fileObj.file_path && fs.existsSync(fileObj.file_path)) {
+      try {
+        const ext = path.extname(fileObj.file_name).toLowerCase();
+        let mimeType = 'application/pdf';
+        if (ext === '.pdf') mimeType = 'application/pdf';
+        else if (ext === '.txt') mimeType = 'text/plain';
+        else if (ext === '.png') mimeType = 'image/png';
+        else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+        else mimeType = 'application/pdf'; // Default fallback
+        
+        const fileData = fs.readFileSync(fileObj.file_path).toString('base64');
+        filePart = {
+          inlineData: {
+            data: fileData,
+            mimeType: mimeType
+          }
+        };
+        fileContent = '[File Content Attached]';
+      } catch (err) {
+        console.error('Error reading file for Gemini:', err);
+      }
+    }
+
     const prompt = `
-      Please provide a comprehensive summary of the following educational content:
+      Please provide a comprehensive summary of the attached educational document:
       
       Subject: ${fileObj.subject}
       Grade: ${fileObj.grade}
       Title: ${fileObj.title}
-      
-      Content: ${fileContent}
       
       Please provide:
       1. A concise summary (2-3 paragraphs)
@@ -55,7 +80,11 @@ const generateSummary = async (req, res) => {
       Format the response in a clear, educational manner suitable for students.
     `;
 
-    const result = await model.generateContent(prompt);
+    const contents = filePart 
+      ? [{ role: 'user', parts: [{ text: prompt }, filePart] }]
+      : [{ role: 'user', parts: [{ text: prompt + "\n\nFallback description: " + fileContent }] }];
+
+    const result = await model.generateContent({ contents });
     const summaryContent = result.response.text();
 
     // Save summary to database
@@ -103,18 +132,42 @@ const generateQuiz = async (req, res) => {
     }
 
     const fileObj = files[0];
-    const fileContent = `Content from ${fileObj.title} - ${fileObj.subject} for ${fileObj.grade}`;
 
     // Generate quiz using Gemini
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    
+    let filePart = null;
+    let fileContent = `Content from ${fileObj.title} - ${fileObj.subject} for ${fileObj.grade}`;
+    
+    if (fileObj.file_path && fs.existsSync(fileObj.file_path)) {
+      try {
+        const ext = path.extname(fileObj.file_name).toLowerCase();
+        let mimeType = 'application/pdf';
+        if (ext === '.pdf') mimeType = 'application/pdf';
+        else if (ext === '.txt') mimeType = 'text/plain';
+        else if (ext === '.png') mimeType = 'image/png';
+        else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+        else mimeType = 'application/pdf';
+        
+        const fileData = fs.readFileSync(fileObj.file_path).toString('base64');
+        filePart = {
+          inlineData: {
+            data: fileData,
+            mimeType: mimeType
+          }
+        };
+        fileContent = '[File Content Attached]';
+      } catch (err) {
+        console.error('Error reading file for Gemini:', err);
+      }
+    }
+
     const prompt = `
-      Please create a ${num_questions}-question quiz based on the following educational content:
+      Please create a ${num_questions}-question quiz based on the attached educational document:
       
       Subject: ${fileObj.subject}
       Grade: ${fileObj.grade}
       Title: ${fileObj.title}
-      
-      Content: ${fileContent}
       
       Please provide:
       1. ${num_questions} multiple choice questions
@@ -143,7 +196,11 @@ const generateQuiz = async (req, res) => {
       Return ONLY the JSON object, no additional text.
     `;
 
-    const result = await model.generateContent(prompt);
+    const contents = filePart 
+      ? [{ role: 'user', parts: [{ text: prompt }, filePart] }]
+      : [{ role: 'user', parts: [{ text: prompt + "\n\nFallback content: " + fileContent }] }];
+
+    const result = await model.generateContent({ contents });
     const quizContent = result.response.text();
 
     // Try to parse the response as JSON
