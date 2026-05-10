@@ -5,6 +5,8 @@ const { pool } = require('../config/database');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 const fs = require('fs');
+const pdf = require('pdf-parse');
+
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -50,11 +52,12 @@ CORE RULES:
 6. Be encouraging, patient, and supportive.
 7. When showing formulas, explain each variable.
 8. Suggest follow-up questions at the end of your responses.
-9. If the student uploads an image, analyze it carefully (handwritten work, textbook page, diagram).
+9. If the student uploads an image or document, analyze it carefully (handwritten work, textbook page, diagram).
 10. For wrong answers, explain WHY it's wrong before showing the correct approach.
 11. Never give direct answers to homework - guide the student to solve it themselves.
-
+12. If a quiz is requested, generate high-quality multiple-choice questions based on the material.
 FORMAT RULES:
+13. IMPORTANT: If the prompt includes a "[Context: I am reading a document titled...]" block, DO NOT claim you cannot see files. You must act as if you can see it and answer the question based on the document. I will attach the document file to the request directly.
 - Use **bold** for key terms
 - Use bullet points for lists
 - Use numbered steps for solutions
@@ -205,7 +208,7 @@ const sendMessage = async (req, res) => {
 
     // Handle image if present
     if (req.file) {
-      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
       const imageBuffer = fs.readFileSync(req.file.path);
       const base64Image = imageBuffer.toString('base64');
       const mimeType = req.file.mimetype || 'image/jpeg';
@@ -215,7 +218,7 @@ const sendMessage = async (req, res) => {
         { inlineData: { data: base64Image, mimeType } },
       ];
     } else {
-      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
       // Use chat mode for conversation continuity
       if (chatHistory.length > 0) {
@@ -464,7 +467,117 @@ const getStudentMemory = async (req, res) => {
   }
 };
 
+const generateQuiz = async (req, res) => {
+  const { topic, subject, grade, instructions } = req.body;
+  let textContent = topic || "";
+
+  try {
+    if (req.file) {
+      const filePath = req.file.path;
+      // Handle huge files by limiting the read size or being more selective
+      // For now, let's extract text and let the prompt handle instructions
+      if (req.file.mimetype === 'application/pdf') {
+        const dataBuffer = fs.readFileSync(filePath);
+        const data = await pdf(dataBuffer);
+        textContent = data.text;
+      } else {
+        textContent = fs.readFileSync(filePath, 'utf8');
+      }
+      
+      // Safety: Truncate very large text to avoid token limits, 
+      // but keep enough for the instruction to work.
+      if (textContent.length > 50000) {
+        textContent = textContent.substring(0, 50000) + "... [Text Truncated]";
+      }
+    }
+
+    if (!textContent && !topic) {
+      return res.status(400).json({ error: 'Please provide a topic or upload a file to generate a quiz.' });
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    
+    const prompt = `Generate a high-quality quiz for an Ethiopian student in ${grade || 'High School'} studying ${subject || 'this topic'}.
+    ${instructions ? `SPECIAL INSTRUCTIONS: ${instructions}` : ''}
+    
+    Based on the following content, create 5-10 Multiple Choice Questions (MCQs).
+    Content:
+    ${textContent}
+
+    Return ONLY a JSON array of objects with this format:
+    [
+      {
+        "id": 1,
+        "question": "The question text",
+        "options": ["Option A", "Option B", "Option C", "Option D"],
+        "correct": "The exact string from options that is correct",
+        "explanation": "Brief explanation why it's correct"
+      }
+    ]`;
+
+    const result = await withRetry(() => model.generateContent(prompt));
+    const response = result.response.text();
+    
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error("Failed to generate a valid quiz format. Please try again with a clearer topic.");
+    }
+
+    const quiz = JSON.parse(jsonMatch[0]);
+
+    // PERSISTENCE: Save to database
+    const [dbResult] = await pool.query(
+      'INSERT INTO ai_tutor_quizzes (user_id, topic, subject, grade, questions) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, topic || req.file?.originalname || "General Quiz", subject || null, grade || null, JSON.stringify(quiz)]
+    );
+
+    return res.json({ 
+      quiz, 
+      id: dbResult.insertId,
+      message: "Quiz generated and saved successfully!" 
+    });
+  } catch (error) {
+    console.error('Generate quiz error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to generate quiz.' });
+  }
+};
+
+const getQuizzes = async (req, res) => {
+  try {
+    const [quizzes] = await pool.query(
+      'SELECT id, topic, subject, grade, questions, created_at FROM ai_tutor_quizzes WHERE user_id = ? ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    // Parse questions back to JSON
+    quizzes.forEach(q => {
+      if (typeof q.questions === 'string') q.questions = JSON.parse(q.questions);
+    });
+    return res.json(quizzes);
+  } catch (error) {
+    console.error('Get quizzes error:', error);
+    return res.status(500).json({ error: 'Failed to fetch quizzes.' });
+  }
+};
+
+const deleteQuiz = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await pool.query(
+      'DELETE FROM ai_tutor_quizzes WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Quiz not found or not owned by you.' });
+    }
+    return res.json({ message: 'Quiz deleted successfully.' });
+  } catch (error) {
+    console.error('Delete quiz error:', error);
+    return res.status(500).json({ error: 'Failed to delete quiz.' });
+  }
+};
+
 module.exports = {
   createConversation, getConversations, getMessages,
   sendMessage, deleteConversation, renameConversation, getStudentMemory,
+  generateQuiz, getQuizzes, deleteQuiz
 };
