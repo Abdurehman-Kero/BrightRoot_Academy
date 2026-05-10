@@ -10,6 +10,7 @@ const { authenticateToken } = require('../middleware/auth');
 const {
   createConversation, getConversations, getMessages,
   sendMessage, deleteConversation, renameConversation, getStudentMemory,
+  generateQuiz, getQuizzes, deleteQuiz
 } = require('../controllers/aiTutorController');
 
 // Ensure uploads/tutor directory exists
@@ -31,11 +32,11 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp|bmp/;
+    const allowed = /jpeg|jpg|png|gif|webp|bmp|pdf|txt/;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());
     const mime = allowed.test(file.mimetype.split('/')[1]);
     if (ext || mime) return cb(null, true);
-    cb(new Error('Only image files are allowed.'));
+    cb(new Error('Only image and document (PDF, TXT) files are allowed.'));
   },
 });
 
@@ -54,5 +55,10 @@ router.post('/conversations/:id/send/', upload.single('image'), sendMessage);
 
 // Student memory
 router.get('/memory/', getStudentMemory);
+
+// Quiz generation and management
+router.post('/generate-quiz', upload.single('file'), generateQuiz);
+router.get('/quizzes', getQuizzes);
+router.delete('/quizzes/:id', deleteQuiz);
 
 module.exports = router;
