@@ -12,6 +12,7 @@ const {
   getUserFiles,
   getCommonBooks,
   downloadFile,
+  deleteFile,
 } = require('../controllers/notesController');
 
 // Configure multer for file uploads
@@ -49,5 +50,8 @@ router.get('/common-books/', authenticateToken, getCommonBooks);
 
 // GET /api/notes/download/:fileId/ — Public (matches Django's function view)
 router.get('/download/:fileId/', downloadFile);
+
+// DELETE /api/notes/files/:fileId/ — Authenticated
+router.delete('/files/:fileId/', authenticateToken, deleteFile);
 
 module.exports = router;
