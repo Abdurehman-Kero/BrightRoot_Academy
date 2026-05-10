@@ -35,7 +35,7 @@ const generateSummary = async (req, res) => {
     const fileObj = files[0];
 
     // Generate summary using Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     
     // Check if real file exists
     let filePart = null;
@@ -145,7 +145,7 @@ const generateQuiz = async (req, res) => {
     const fileObj = files[0];
 
     // Generate quiz using Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     
     let filePart = null;
     let fileContent = `Content from ${fileObj.title} - ${fileObj.subject} for ${fileObj.grade}`;
