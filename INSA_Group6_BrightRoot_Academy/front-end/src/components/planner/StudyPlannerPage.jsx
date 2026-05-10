@@ -24,23 +24,27 @@ const StudyPlannerPage = ({ onBack, token }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [showAddExam, setShowAddExam] = useState(false);
-  const [newExam, setNewExam] = useState({ subject: "Maths", exam_date: "", exam_name: "", priority: "high" });
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [newGoal, setNewGoal] = useState({ subject: "Maths", type: "Exam", name: "", date: "", priority: "high" });
   const [genSettings, setGenSettings] = useState({ hours_per_day: 4, preferred_start: "09:00" });
   const [successMsg, setSuccessMsg] = useState("");
 
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const getHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem("brightroot_token")}`,
+    "Content-Type": "application/json"
+  });
 
   const showSuccess = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(""), 3000); };
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
+      const hdrs = getHeaders();
       const [todayRes, examsRes, plansRes, remindersRes] = await Promise.all([
-        axios.get(`${API}/today/`, { headers }),
-        axios.get(`${API}/exams/`, { headers }),
-        axios.get(`${API}/plans/`, { headers }),
-        axios.get(`${API}/reminders/`, { headers }),
+        axios.get(`${API}/today/`, { headers: hdrs }),
+        axios.get(`${API}/exams/`, { headers: hdrs }),
+        axios.get(`${API}/plans/`, { headers: hdrs }),
+        axios.get(`${API}/reminders/`, { headers: hdrs }),
       ]);
       setToday(todayRes.data);
       setExams(examsRes.data);
@@ -55,7 +59,7 @@ const StudyPlannerPage = ({ onBack, token }) => {
     const start = `${y}-${String(m + 1).padStart(2, "0")}-01`;
     const end = `${y}-${String(m + 1).padStart(2, "0")}-${new Date(y, m + 1, 0).getDate()}`;
     try {
-      const res = await axios.get(`${API}/sessions/?start_date=${start}&end_date=${end}`, { headers });
+      const res = await axios.get(`${API}/sessions/?start_date=${start}&end_date=${end}`, { headers: getHeaders() });
       setSessions(res.data);
     } catch {}
   }, [calMonth]);
@@ -63,21 +67,33 @@ const StudyPlannerPage = ({ onBack, token }) => {
   useEffect(() => { loadAll(); }, []);
   useEffect(() => { if (view === "calendar") loadCalendarSessions(); }, [view, calMonth]);
 
-  const addExamHandler = async () => {
-    if (!newExam.exam_date) return alert("Please set the exam date.");
+  const addGoalHandler = async () => {
+    if (!newGoal.date || !newGoal.name) return alert("Please set a name and date.");
     try {
-      await axios.post(`${API}/exams/`, newExam, { headers });
-      setShowAddExam(false);
-      setNewExam({ subject: "Maths", exam_date: "", exam_name: "", priority: "high" });
+      const payload = {
+        subject: newGoal.subject,
+        exam_name: `${newGoal.type}: ${newGoal.name}`,
+        exam_date: newGoal.date,
+        priority: newGoal.priority
+      };
+      await axios.post(`${API}/exams/`, payload, { headers: getHeaders() });
+      setShowAddGoal(false);
+      setNewGoal({ subject: "Maths", type: "Exam", name: "", date: "", priority: "high" });
       loadAll();
-      showSuccess("✅ Exam added!");
-    } catch (e) { alert(e.response?.data?.error || "Failed to add exam"); }
+      showSuccess(`✅ ${newGoal.type} added!`);
+      // Immediately suggest generating a plan
+      setTimeout(() => {
+        if (window.confirm(`Would you like AI to instantly generate a study plan for this ${newGoal.type}?`)) {
+          setView("generate");
+        }
+      }, 500);
+    } catch (e) { alert(e.response?.data?.error || "Failed to add goal (Ensure you are still logged in)"); }
   };
 
-  const deleteExam = async (id) => {
-    if (!window.confirm("Remove this exam?")) return;
+  const deleteGoal = async (id) => {
+    if (!window.confirm("Remove this goal?")) return;
     try {
-      await axios.delete(`${API}/exams/${id}/`, { headers });
+      await axios.delete(`${API}/exams/${id}/`, { headers: getHeaders() });
       loadAll();
     } catch {}
   };
@@ -86,7 +102,7 @@ const StudyPlannerPage = ({ onBack, token }) => {
     if (exams.length === 0) return alert("Add at least one upcoming exam first!");
     setGenerating(true);
     try {
-      const res = await axios.post(`${API}/plans/generate/`, genSettings, { headers });
+      const res = await axios.post(`${API}/plans/generate/`, genSettings, { headers: getHeaders() });
       loadAll();
       loadCalendarSessions();
       setView("calendar");
@@ -97,7 +113,7 @@ const StudyPlannerPage = ({ onBack, token }) => {
 
   const toggleSession = async (sessionId, isDone) => {
     try {
-      await axios.patch(`${API}/sessions/${sessionId}/`, { is_completed: !isDone }, { headers });
+      await axios.patch(`${API}/sessions/${sessionId}/`, { is_completed: !isDone }, { headers: getHeaders() });
       loadAll();
       if (!isDone) showSuccess("✅ Session marked complete! +20 XP");
     } catch {}
@@ -105,7 +121,7 @@ const StudyPlannerPage = ({ onBack, token }) => {
 
   const dismissReminder = async (id) => {
     try {
-      await axios.post(`${API}/reminders/${id}/dismiss/`, {}, { headers });
+      await axios.post(`${API}/reminders/${id}/dismiss/`, {}, { headers: getHeaders() });
       setReminders(prev => prev.filter(r => r.id !== id));
     } catch {}
   };
@@ -119,8 +135,17 @@ const StudyPlannerPage = ({ onBack, token }) => {
 
   const getSessionsForDate = (dateStr) => sessions.filter(s => s.session_date?.startsWith(dateStr));
 
-  const formatDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const daysUntil = (d) => Math.ceil((new Date(d + 'T00:00:00') - new Date()) / 86400000);
+  const formatDate = (d) => {
+    if (!d) return "";
+    const cleanDate = d.includes('T') ? d.split('T')[0] : d;
+    return new Date(cleanDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  
+  const daysUntil = (d) => {
+    if (!d) return 0;
+    const cleanDate = d.includes('T') ? d.split('T')[0] : d;
+    return Math.ceil((new Date(cleanDate + 'T12:00:00') - new Date()) / 86400000);
+  };
 
   if (loading) return (
     <div className="planner-loading"><Spinner animation="border" variant="success" /><p>Loading your planner...</p></div>
@@ -201,32 +226,38 @@ const StudyPlannerPage = ({ onBack, token }) => {
           ))}
         </div>
       ) : (
-        <div className="no-sessions">
-          <i className="bi bi-calendar-x"></i>
-          <p>No sessions today.</p>
-          <button className="gen-btn" onClick={() => setView("generate")}>Generate Study Plan</button>
+        <div className="no-sessions text-center py-5 bg-dark rounded-4 border border-secondary shadow-sm">
+          <i className="bi bi-rocket-takeoff display-1 text-success opacity-75 mb-3"></i>
+          <h4 className="text-white">You're all clear today!</h4>
+          <p className="text-secondary px-4">There are no study sessions scheduled. If you have an upcoming exam, project, or assignment, add it now and let AI build your study plan!</p>
+          <div className="mt-4 d-flex gap-3 justify-content-center">
+            <button className="btn btn-primary rounded-pill px-4" onClick={() => setView("goals")}><i className="bi bi-plus-lg me-2"></i>Add Goal</button>
+            <button className="btn btn-outline-success rounded-pill px-4" onClick={() => setView("generate")}><i className="bi bi-magic me-2"></i>Auto-Plan</button>
+          </div>
         </div>
       )}
 
-      {/* Upcoming Exams */}
+      {/* Upcoming Goals */}
       {today.upcoming_exams?.length > 0 && (
-        <div className="upcoming-exams">
-          <h5 className="section-title"><i className="bi bi-alarm me-2"></i>Upcoming Exams</h5>
-          {today.upcoming_exams.map(e => {
-            const days = daysUntil(e.exam_date);
-            return (
-              <div key={e.id} className={`exam-countdown ${days <= 3 ? "urgent" : ""}`}>
-                <div className="exam-subj" style={{ color: SUBJECT_COLORS[e.subject] }}>{e.subject}</div>
-                <div className="exam-name">{e.exam_name}</div>
-                <div className="exam-days">
-                  <span className={days <= 3 ? "text-danger" : days <= 7 ? "text-warning" : "text-success"}>
-                    {days === 0 ? "TODAY!" : days === 1 ? "Tomorrow!" : `${days} days`}
-                  </span>
-                  <small>{formatDate(e.exam_date)}</small>
+        <div className="upcoming-exams mt-5">
+          <h5 className="section-title text-light"><i className="bi bi-flag-fill me-2 text-primary"></i>Upcoming Milestones</h5>
+          <div className="d-flex gap-3 overflow-auto pb-3">
+            {today.upcoming_exams.map(e => {
+              const days = daysUntil(e.exam_date);
+              return (
+                <div key={e.id} className={`exam-countdown p-3 rounded-4 border border-secondary shadow-sm ${days <= 3 ? "border-danger bg-danger bg-opacity-10" : "bg-dark"}`} style={{ minWidth: '200px' }}>
+                  <div className="exam-subj fw-bold fs-6 mb-1" style={{ color: SUBJECT_COLORS[e.subject] }}>{e.subject}</div>
+                  <div className="exam-name text-white fw-medium text-truncate" title={e.exam_name}>{e.exam_name}</div>
+                  <div className="exam-days mt-2 d-flex justify-content-between align-items-center">
+                    <span className={`fw-bold ${days <= 3 ? "text-danger" : days <= 7 ? "text-warning" : "text-success"}`}>
+                      {days === 0 ? "TODAY!" : days === 1 ? "Tomorrow!" : `${days} days`}
+                    </span>
+                    <small className="text-secondary">{formatDate(e.exam_date)}</small>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -310,70 +341,98 @@ const StudyPlannerPage = ({ onBack, token }) => {
     );
   };
 
-  // ═══ EXAMS VIEW ═══
-  const renderExams = () => (
+  // ═══ GOALS VIEW ═══
+  const renderGoals = () => (
     <div className="exams-view">
-      <div className="exams-header">
-        <h5><i className="bi bi-calendar-event me-2"></i>My Exams</h5>
-        <button className="add-exam-btn" onClick={() => setShowAddExam(!showAddExam)}>
-          <i className="bi bi-plus-lg me-1"></i>Add Exam
+      <div className="exams-header d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center">
+          <div className="bg-primary bg-opacity-25 rounded-circle p-2 me-3">
+            <i className="bi bi-bullseye fs-3 text-primary"></i>
+          </div>
+          <div>
+            <h4 className="text-white mb-0">My Study Goals</h4>
+            <span className="text-secondary">Exams, Projects, and Assignments</span>
+          </div>
+        </div>
+        <button className="btn btn-primary rounded-pill px-4 shadow" onClick={() => setShowAddGoal(!showAddGoal)}>
+          <i className="bi bi-plus-lg me-2"></i>New Goal
         </button>
       </div>
 
-      {showAddExam && (
-        <div className="add-exam-form">
-          <select value={newExam.subject} onChange={e => setNewExam({ ...newExam, subject: e.target.value })} className="p-input">
-            {SUBJECTS.map(s => <option key={s}>{s}</option>)}
-          </select>
-          <input type="text" placeholder="Exam name (e.g. National Exam)" value={newExam.exam_name}
-            onChange={e => setNewExam({ ...newExam, exam_name: e.target.value })} className="p-input" />
-          <input type="date" value={newExam.exam_date}
-            onChange={e => setNewExam({ ...newExam, exam_date: e.target.value })} className="p-input"
-            min={new Date().toISOString().split("T")[0]} />
-          <select value={newExam.priority} onChange={e => setNewExam({ ...newExam, priority: e.target.value })} className="p-input">
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
-            <option value="critical">Critical</option>
-          </select>
-          <div className="form-btns">
-            <button className="save-btn" onClick={addExamHandler}>Save Exam</button>
-            <button className="cancel-btn" onClick={() => setShowAddExam(false)}>Cancel</button>
+      {showAddGoal && (
+        <div className="add-exam-form bg-dark p-4 rounded-4 border border-secondary shadow-lg mb-4 animation-fade-in">
+          <h5 className="text-light mb-3">Add a New Goal</h5>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <label className="form-label text-secondary small">Goal Type</label>
+              <select value={newGoal.type} onChange={e => setNewGoal({ ...newGoal, type: e.target.value })} className="form-select bg-black text-light border-secondary">
+                <option value="Exam">Exam</option>
+                <option value="Assignment">Assignment</option>
+                <option value="Project">Project</option>
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label text-secondary small">Subject</label>
+              <select value={newGoal.subject} onChange={e => setNewGoal({ ...newGoal, subject: e.target.value })} className="form-select bg-black text-light border-secondary">
+                {SUBJECTS.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="col-md-8">
+              <label className="form-label text-secondary small">Name / Topic</label>
+              <input type="text" placeholder={`e.g. Midterm, Research Paper...`} value={newGoal.name}
+                onChange={e => setNewGoal({ ...newGoal, name: e.target.value })} className="form-control bg-black text-light border-secondary" />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label text-secondary small">Deadline Date</label>
+              <input type="date" value={newGoal.date}
+                onChange={e => setNewGoal({ ...newGoal, date: e.target.value })} className="form-control bg-black text-light border-secondary"
+                min={new Date().toISOString().split("T")[0]} />
+            </div>
+          </div>
+          <div className="mt-4 d-flex gap-2 justify-content-end">
+            <button className="btn btn-outline-secondary rounded-pill px-4" onClick={() => setShowAddGoal(false)}>Cancel</button>
+            <button className="btn btn-success rounded-pill px-4 shadow" onClick={addGoalHandler}><i className="bi bi-check2 me-2"></i>Save Goal</button>
           </div>
         </div>
       )}
 
-      <div className="exam-cards-list">
+      <div className="exam-cards-list row g-3">
         {exams.map(e => {
           const days = daysUntil(e.exam_date);
           return (
-            <div key={e.id} className="exam-card-item" style={{ "--sc": SUBJECT_COLORS[e.subject] || "#2ecc71" }}>
-              <div className="exam-card-left">
-                <div className="eci-bar"></div>
-                <div>
-                  <div className="eci-subj">{e.subject}</div>
-                  <div className="eci-name">{e.exam_name}</div>
-                  <Badge bg={e.priority === "critical" ? "danger" : e.priority === "high" ? "warning" : "secondary"} className="mt-1">
-                    {e.priority}
-                  </Badge>
+            <div className="col-md-6" key={e.id}>
+              <div className="exam-card-item bg-dark border-secondary h-100 rounded-4 shadow-sm" style={{ "--sc": SUBJECT_COLORS[e.subject] || "#2ecc71" }}>
+                <div className="exam-card-left">
+                  <div className="eci-bar"></div>
+                  <div>
+                    <div className="eci-subj d-flex align-items-center gap-2">
+                      <span style={{ color: SUBJECT_COLORS[e.subject] }}><i className="bi bi-book-half me-1"></i>{e.subject}</span>
+                      <Badge bg={e.priority === "critical" ? "danger" : e.priority === "high" ? "warning" : "secondary"}>
+                        {e.priority}
+                      </Badge>
+                    </div>
+                    <div className="eci-name text-white fs-5 mt-1">{e.exam_name}</div>
+                  </div>
                 </div>
-              </div>
-              <div className="exam-card-right">
-                <div className="eci-date">{formatDate(e.exam_date)}</div>
-                <div className={`eci-days ${days <= 3 ? "text-danger" : days <= 7 ? "text-warning" : "text-success"}`}>
-                  {days === 0 ? "TODAY" : days < 0 ? "Passed" : `${days} days`}
+                <div className="exam-card-right d-flex flex-column align-items-end justify-content-center">
+                  <div className="eci-date text-secondary small"><i className="bi bi-calendar3 me-1"></i>{formatDate(e.exam_date)}</div>
+                  <div className={`eci-days fw-bold fs-5 ${days <= 3 ? "text-danger" : days <= 7 ? "text-warning" : "text-success"}`}>
+                    {days === 0 ? "TODAY" : days < 0 ? "Passed" : `${days} days left`}
+                  </div>
+                  <button className="btn btn-link text-danger p-0 mt-2 text-decoration-none small" onClick={() => deleteGoal(e.id)}>
+                    <i className="bi bi-trash me-1"></i>Remove
+                  </button>
                 </div>
-                <button className="del-btn" onClick={() => deleteExam(e.id)}>
-                  <i className="bi bi-trash"></i>
-                </button>
               </div>
             </div>
           );
         })}
         {exams.length === 0 && (
-          <div className="no-exams">
-            <i className="bi bi-calendar-plus"></i>
-            <p>No exams added yet. Add your upcoming exams!</p>
+          <div className="col-12 text-center py-5 bg-dark rounded-4 border border-secondary shadow-sm">
+            <i className="bi bi-flag display-1 text-primary opacity-50 mb-3 d-block"></i>
+            <h4 className="text-white">No Upcoming Goals</h4>
+            <p className="text-secondary px-4">Whether it's an exam, a project deadline, or an assignment, add it here and we'll help you plan for it.</p>
+            <button className="btn btn-primary rounded-pill mt-2 px-4 shadow" onClick={() => setShowAddGoal(true)}><i className="bi bi-plus-lg me-2"></i>Add Your First Goal</button>
           </div>
         )}
       </div>
@@ -390,9 +449,11 @@ const StudyPlannerPage = ({ onBack, token }) => {
       </div>
 
       {exams.length === 0 ? (
-        <div className="gen-no-exams">
-          <p>You need to add your upcoming exams first.</p>
-          <button className="gen-btn" onClick={() => setView("exams")}>Add Exams</button>
+        <div className="gen-no-exams bg-dark p-5 rounded-4 border border-secondary text-center shadow-sm">
+          <i className="bi bi-flag display-1 text-secondary mb-3 d-block"></i>
+          <h4 className="text-white">What are we planning for?</h4>
+          <p className="text-secondary px-4">Before I can build a schedule, I need to know your upcoming goals. Add your exams, projects, or assignments first.</p>
+          <button className="btn btn-primary rounded-pill px-5 py-2 mt-3 shadow" onClick={() => setView("goals")}><i className="bi bi-plus-lg me-2"></i>Add Your First Goal</button>
         </div>
       ) : (
         <>
@@ -425,15 +486,24 @@ const StudyPlannerPage = ({ onBack, token }) => {
           </button>
 
           {plans.length > 0 && (
-            <div className="existing-plans">
-              <h6>Existing Plans</h6>
-              {plans.map(p => (
-                <div key={p.id} className="plan-chip" onClick={() => { setView("calendar"); }}>
-                  <i className="bi bi-calendar-check me-2"></i>
-                  <span>{p.title}</span>
-                  <small>{p.plan_start} → {p.plan_end}</small>
-                </div>
-              ))}
+            <div className="existing-plans mt-4">
+              <h6 className="text-secondary mb-3">Your Saved Study Plans</h6>
+              <div className="d-flex flex-column gap-2">
+                {plans.map(p => (
+                  <div key={p.id} className="plan-chip bg-dark border-secondary d-flex justify-content-between align-items-center p-3 rounded-3 shadow-sm hover-bg-secondary cursor-pointer" onClick={() => { setView("calendar"); }}>
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="bg-primary bg-opacity-25 rounded p-2 text-primary">
+                        <i className="bi bi-calendar-check fs-5"></i>
+                      </div>
+                      <div>
+                        <div className="text-white fw-bold">{p.title}</div>
+                        <small className="text-secondary"><i className="bi bi-clock me-1"></i>{formatDate(p.plan_start)} to {formatDate(p.plan_end)}</small>
+                      </div>
+                    </div>
+                    <i className="bi bi-chevron-right text-secondary"></i>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </>
@@ -462,7 +532,7 @@ const StudyPlannerPage = ({ onBack, token }) => {
         {[
           { id: "today", icon: "bi-sun", label: "Today" },
           { id: "calendar", icon: "bi-calendar3", label: "Calendar" },
-          { id: "exams", icon: "bi-pencil-square", label: "Exams" },
+          { id: "goals", icon: "bi-bullseye", label: "Goals" },
           { id: "generate", icon: "bi-magic", label: "AI Plan" },
         ].map(tab => (
           <button key={tab.id} className={`p-tab ${view === tab.id ? "active" : ""}`}
@@ -477,7 +547,7 @@ const StudyPlannerPage = ({ onBack, token }) => {
       <div className="planner-content">
         {view === "today" && renderToday()}
         {view === "calendar" && renderCalendar()}
-        {view === "exams" && renderExams()}
+        {view === "goals" && renderGoals()}
         {view === "generate" && renderGenerate()}
       </div>
     </div>
