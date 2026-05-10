@@ -6,9 +6,6 @@ const fs = require('fs');
 const { pool } = require('../config/database');
 require('dotenv').config();
 
-const VALID_SUBJECTS = ['Maths', 'Physics', 'Chemistry', 'Biology', 'English'];
-const VALID_GRADES = ['Grade9', 'Grade10', 'Grade11', 'Grade12'];
-
 /**
  * POST /api/notes/upload/
  * Upload a file with metadata
@@ -20,14 +17,6 @@ const uploadFile = async (req, res) => {
   // Validation
   if (!file || !title || !subject || !grade) {
     return res.status(400).json({ error: 'File, title, subject, and grade are required.' });
-  }
-
-  if (!VALID_SUBJECTS.includes(subject)) {
-    return res.status(400).json({ error: 'Invalid subject.' });
-  }
-
-  if (!VALID_GRADES.includes(grade)) {
-    return res.status(400).json({ error: 'Invalid grade.' });
   }
 
   try {
@@ -75,11 +64,23 @@ const uploadFile = async (req, res) => {
  * Get all files uploaded by the current user
  */
 const getUserFiles = async (req, res) => {
+  const { subject, grade } = req.query;
   try {
-    const [files] = await pool.query(
-      'SELECT * FROM uploaded_files WHERE user_id = ? ORDER BY uploaded_at DESC',
-      [req.user.id]
-    );
+    let query = 'SELECT * FROM uploaded_files WHERE user_id = ?';
+    const params = [req.user.id];
+
+    if (subject) {
+      query += ' AND subject = ?';
+      params.push(subject);
+    }
+    if (grade) {
+      query += ' AND grade = ?';
+      params.push(grade);
+    }
+    
+    query += ' ORDER BY uploaded_at DESC';
+
+    const [files] = await pool.query(query, params);
     return res.status(200).json(files);
   } catch (error) {
     console.error('Get user files error:', error);
@@ -108,7 +109,7 @@ const getCommonBooks = async (req, res) => {
       params.push(grade);
     }
 
-    query += ' ORDER BY uploaded_at DESC';
+    query += ' ORDER BY created_at DESC';
 
     const [books] = await pool.query(query, params);
     return res.status(200).json(books);
@@ -119,32 +120,68 @@ const getCommonBooks = async (req, res) => {
 };
 
 /**
- * GET /api/notes/download/:fileId/
+ * DELETE /api/notes/files/:id/
+ * Delete a user's uploaded file
+ */
+const deleteFile = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Check if the file belongs to the user
+    const [files] = await pool.query('SELECT * FROM uploaded_files WHERE id = ? AND user_id = ?', [id, req.user.id]);
+    
+    if (files.length === 0) {
+      return res.status(404).json({ error: 'File not found or unauthorized.' });
+    }
+
+    const file = files[0];
+
+    // Delete from local file system if it exists
+    if (file.file_path && fs.existsSync(file.file_path)) {
+      try {
+        fs.unlinkSync(file.file_path);
+      } catch (err) {
+        console.error('Failed to delete file from disk:', err);
+      }
+    }
+
+    // Delete from database
+    await pool.query('DELETE FROM uploaded_files WHERE id = ?', [id]);
+
+    return res.status(200).json({ message: 'File deleted successfully.' });
+  } catch (error) {
+    console.error('Delete file error:', error);
+    return res.status(500).json({ error: 'Failed to delete file.' });
+  }
+};
+
+/**
+ * GET /api/notes/download/:id/
  * Download a file by ID
  */
 const downloadFile = async (req, res) => {
-  const { fileId } = req.params;
+  const { id } = req.params;
 
   try {
-    const [files] = await pool.query('SELECT * FROM uploaded_files WHERE id = ?', [fileId]);
+    // Check uploaded files first
+    let [files] = await pool.query('SELECT * FROM uploaded_files WHERE id = ?', [id]);
+    let file = files[0];
 
-    if (files.length === 0) {
+    // If not found, check common books
+    if (!file) {
+      [files] = await pool.query('SELECT * FROM common_books WHERE id = ?', [id]);
+      file = files[0];
+    }
+
+    if (!file) {
       return res.status(404).json({ error: 'File not found.' });
     }
 
-    const fileObj = files[0];
-
-    // If we have a local file path, serve it directly
-    if (fileObj.file_path && fs.existsSync(fileObj.file_path)) {
-      return res.download(fileObj.file_path, fileObj.file_name);
+    if (!file.file_path || !fs.existsSync(file.file_path)) {
+      return res.status(404).json({ error: 'Physical file not found on server.' });
     }
 
-    // If we have a URL but no local path, redirect
-    if (fileObj.file_url) {
-      return res.redirect(fileObj.file_url);
-    }
-
-    return res.status(404).json({ error: 'File not found on storage.' });
+    res.download(file.file_path, file.file_name || 'download');
   } catch (error) {
     console.error('Download file error:', error);
     return res.status(500).json({ error: 'Failed to download file.' });
@@ -155,5 +192,6 @@ module.exports = {
   uploadFile,
   getUserFiles,
   getCommonBooks,
-  downloadFile,
+  deleteFile,
+  downloadFile
 };
