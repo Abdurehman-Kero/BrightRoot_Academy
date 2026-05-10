@@ -161,3 +161,59 @@
   background: #30363d;
   border-radius: 2px;
 }
+
+/* My Materials Styles */
+.upload-btn {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.upload-btn:hover {
+  background: #1e2a3a;
+}
+
+.my-files-list {
+  padding: 0 0.5rem 1rem 0.5rem;
+}
+
+.my-file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  background: #161b22;
+  border: 1px solid #1e2a3a;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.my-file-item:hover {
+  background: #1a2332;
+  border-color: #3498db;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: #c9d1d9;
+}
+
+.delete-icon {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.delete-icon:hover {
+  background: #ff4d4f22;
+  opacity: 1;
+}
